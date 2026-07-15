@@ -546,12 +546,13 @@ python clear_db.py
 
 This removes the entire `my_gatsby_db` database and leaves MongoDB empty.
 
-After clearing or reseeding the database, restart Gatsby so its data layer refreshes:
+After clearing or reseeding the database, refresh Gatsby's data layer:
 
-```shell
-npm run clean
-npm run develop
+```powershell
+curl.exe -X POST http://localhost:8000/__refresh
 ```
+
+This requires Gatsby to have been started with `ENABLE_GATSBY_REFRESH_ENDPOINT=true`.
 
 ### Recommended startup workflow
 
@@ -582,12 +583,94 @@ cd C:\tools\python
 python clear_db.py
 ```
 
-Then restart Gatsby:
+Then refresh Gatsby:
 
 ```powershell
-npm run clean
+curl.exe -X POST http://localhost:8000/__refresh
+```
+
+
+## Refresh Gatsby data without restarting
+
+During development, Gatsby can expose a refresh endpoint so MongoDB data can be reloaded without stopping and restarting the Gatsby development server.
+
+### Start Gatsby with the refresh endpoint enabled
+
+In PowerShell, run this from the Gatsby project folder:
+
+```powershell
+$env:ENABLE_GATSBY_REFRESH_ENDPOINT="true"
 npm run develop
 ```
+
+You can also run both commands on one line:
+
+```powershell
+$env:ENABLE_GATSBY_REFRESH_ENDPOINT="true"; npm run develop
+```
+
+Keep that terminal running.
+
+### Refresh Gatsby after changing MongoDB data
+
+After running either Python database script, open a second PowerShell terminal and send a POST request to Gatsby:
+
+```powershell
+curl.exe -X POST http://localhost:8000/__refresh
+```
+
+On some Windows systems, `curl` is an alias for `Invoke-WebRequest`. Using `curl.exe` ensures that the actual curl program is used.
+
+PowerShell can also call the endpoint directly:
+
+```powershell
+Invoke-WebRequest `
+  -Method POST `
+  -Uri http://localhost:8000/__refresh
+```
+
+### Example: reseed products without restarting Gatsby
+
+Start Gatsby once:
+
+```powershell
+cd C:\path\to\your\gatsby-project
+$env:ENABLE_GATSBY_REFRESH_ENDPOINT="true"; npm run develop
+```
+
+In another PowerShell terminal, reseed MongoDB:
+
+```powershell
+cd C:\tools\python
+python seed_more_products.py
+```
+
+Refresh Gatsby's data layer:
+
+```powershell
+curl.exe -X POST http://localhost:8000/__refresh
+```
+
+Reload the Products page in the browser.
+
+### Example: test the empty database page
+
+Clear MongoDB:
+
+```powershell
+cd C:\tools\python
+python clear_db.py
+```
+
+Refresh Gatsby:
+
+```powershell
+curl.exe -X POST http://localhost:8000/__refresh
+```
+
+Reload the Products page. Gatsby should display the empty-database message without requiring the development server to be restarted.
+
+> The refresh endpoint is intended for local development. Do not enable it on a public production server.
 
 ## Environment variables
 
