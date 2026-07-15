@@ -334,6 +334,261 @@ The related Gatsby configuration is located in `gatsby-config.js`.
 }
 ```
 
+## Python database scripts
+
+The Python helper scripts can also be kept outside the Gatsby project.
+
+A recommended Windows folder layout is:
+
+```text
+C:\tools\python\
+├── seed_more_products.py
+└── clear_db.py
+```
+
+Create the folder from PowerShell:
+
+```powershell
+mkdir C:\tools\python
+cd C:\tools\python
+```
+
+Install the required Python packages:
+
+```powershell
+python -m pip install pymongo faker
+```
+
+### Seed the database with sample products
+
+Create:
+
+```text
+C:\tools\python\seed_more_products.py
+```
+
+Paste in:
+
+```python
+import sys
+import random
+from pymongo import MongoClient
+from faker import Faker
+
+fake = Faker()
+
+MONGO_URI = "mongodb://localhost:27017"
+DB_NAME = "my_gatsby_db"
+COLLECTION_NAME = "products"
+
+ADJECTIVES = [
+    "Mechanical",
+    "Wireless",
+    "Ergonomic",
+    "UltraWide",
+    "Noise-Cancelling",
+    "Smart",
+    "Portable",
+    "RGB",
+    "Developer Edition",
+]
+
+NOUNS = [
+    "Keyboard",
+    "Mouse",
+    "Monitor",
+    "Headphones",
+    "Desk Lamp",
+    "Webcam",
+    "USB Hub",
+    "Cable Organizer",
+    "Microphone",
+    "Laptop Stand",
+]
+
+
+def generate_fake_product():
+    product_name = f"{random.choice(ADJECTIVES)} {random.choice(NOUNS)}"
+
+    return {
+        "name": product_name,
+        "price": round(random.uniform(10.00, 500.00), 2),
+        "description": (
+            f"{fake.catch_phrase()}. "
+            f"Built specifically for {fake.job().lower()}s."
+        ),
+    }
+
+
+def main():
+    print("Connecting to Vagrant MongoDB...")
+
+    try:
+        client = MongoClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=5000,
+        )
+        client.server_info()
+    except Exception as error:
+        print(
+            "Error: Could not connect to MongoDB. "
+            "Is your Vagrant box running?\n"
+            f"Detail: {error}"
+        )
+        sys.exit(1)
+
+    print(f"Dropping database: {DB_NAME}...")
+    client.drop_database(DB_NAME)
+
+    database = client[DB_NAME]
+    collection = database[COLLECTION_NAME]
+
+    number_of_products = 25
+
+    print(
+        f"Generating {number_of_products} dynamic products "
+        "using Faker..."
+    )
+
+    new_products = [
+        generate_fake_product()
+        for _ in range(number_of_products)
+    ]
+
+    print(
+        f"Inserting fresh products into "
+        f"'{DB_NAME}.{COLLECTION_NAME}'..."
+    )
+
+    result = collection.insert_many(new_products)
+
+    print(
+        "Database reset and seeded successfully! "
+        f"🌱 Inserted {len(result.inserted_ids)} items."
+    )
+
+    client.close()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Run the script:
+
+```powershell
+cd C:\tools\python
+python seed_more_products.py
+```
+
+This script:
+
+- Connects to MongoDB through `mongodb://localhost:27017`
+- Drops the existing `my_gatsby_db` database
+- Recreates the `products` collection
+- Generates 25 sample products with Faker
+- Inserts the products into MongoDB
+
+> Running this script deletes the existing `my_gatsby_db` database before inserting new sample products.
+
+### Clear the database
+
+Create:
+
+```text
+C:\tools\python\clear_db.py
+```
+
+Paste in:
+
+```python
+import sys
+from pymongo import MongoClient
+
+MONGO_URI = "mongodb://localhost:27017"
+DB_NAME = "my_gatsby_db"
+
+
+def main():
+    print("Connecting to Vagrant MongoDB...")
+
+    try:
+        client = MongoClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=5000,
+        )
+        client.server_info()
+    except Exception as error:
+        print(
+            "Error: Could not connect to MongoDB.\n"
+            f"Detail: {error}"
+        )
+        sys.exit(1)
+
+    print(f"Dropping database: {DB_NAME}...")
+    client.drop_database(DB_NAME)
+
+    print("Database cleared! It is now completely empty. 🧼")
+
+    client.close()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Run the script:
+
+```powershell
+cd C:\tools\python
+python clear_db.py
+```
+
+This removes the entire `my_gatsby_db` database and leaves MongoDB empty.
+
+After clearing or reseeding the database, restart Gatsby so its data layer refreshes:
+
+```shell
+npm run clean
+npm run develop
+```
+
+### Recommended startup workflow
+
+Start MongoDB first:
+
+```powershell
+cd C:\tools\vagrant\redhat-mongo
+vagrant up
+```
+
+Seed the database:
+
+```powershell
+cd C:\tools\python
+python seed_more_products.py
+```
+
+Start Gatsby from the Gatsby project folder:
+
+```powershell
+npm run develop
+```
+
+To test the empty-database page:
+
+```powershell
+cd C:\tools\python
+python clear_db.py
+```
+
+Then restart Gatsby:
+
+```powershell
+npm run clean
+npm run develop
+```
+
 ## Environment variables
 
 Create an `.env.development` file in the project root:
@@ -429,12 +684,6 @@ Clear Gatsby cache and generated files:
 npm run clean
 ```
 
-Reset or seed the MongoDB database:
-
-```shell
-npm run reset-db
-```
-
 ## Empty MongoDB collection support
 
 Gatsby normally infers GraphQL types from available data. If the MongoDB collection is empty, Gatsby may not automatically create the product GraphQL type.
@@ -487,8 +736,6 @@ http://localhost:8000/___graphql
 ```text
 project-root/
 ├── blog/
-├── scripts/
-│   └── reset-db.js
 ├── src/
 │   ├── components/
 │   │   ├── layout.js
