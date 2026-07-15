@@ -98,6 +98,13 @@ mkdir C:\tools\vagrant\redhat-mongo
 cd C:\tools\vagrant\redhat-mongo
 ```
 
+Or create and enter the folder from Git Bash:
+
+```bash
+mkdir -p /c/tools/vagrant/redhat-mongo
+cd /c/tools/vagrant/redhat-mongo
+```
+
 Create a file named `Vagrantfile` in that folder and paste in:
 
 ```ruby
@@ -211,10 +218,18 @@ echo "Gatsby connection string: mongodb://localhost:27017"
 
 ### Start the MongoDB virtual machine
 
-Open PowerShell or Git Bash and move into the Vagrant folder:
+Move into the Vagrant folder.
+
+PowerShell:
 
 ```powershell
 cd C:\tools\vagrant\redhat-mongo
+```
+
+Git Bash:
+
+```bash
+cd /c/tools/vagrant/redhat-mongo
 ```
 
 Start and provision the VM:
@@ -351,6 +366,13 @@ Create the folder from PowerShell:
 ```powershell
 mkdir C:\tools\python
 cd C:\tools\python
+```
+
+Or use Git Bash:
+
+```bash
+mkdir -p /c/tools/python
+cd /c/tools/python
 ```
 
 Install the required Python packages:
@@ -556,7 +578,9 @@ This requires Gatsby to have been started with `ENABLE_GATSBY_REFRESH_ENDPOINT=t
 
 ### Recommended startup workflow
 
-Start MongoDB first:
+#### PowerShell
+
+Start MongoDB:
 
 ```powershell
 cd C:\tools\vagrant\redhat-mongo
@@ -573,20 +597,43 @@ python seed_more_products.py
 Start Gatsby from the Gatsby project folder:
 
 ```powershell
-npm run develop
+cd C:\path\to\your\gatsby-project
+$env:ENABLE_GATSBY_REFRESH_ENDPOINT="true"; npm run develop
 ```
 
-To test the empty-database page:
-
-```powershell
-cd C:\tools\python
-python clear_db.py
-```
-
-Then refresh Gatsby:
+After changing the database, refresh Gatsby:
 
 ```powershell
 curl.exe -X POST http://localhost:8000/__refresh
+```
+
+#### Git Bash
+
+Start MongoDB:
+
+```bash
+cd /c/tools/vagrant/redhat-mongo
+vagrant up
+```
+
+Seed the database:
+
+```bash
+cd /c/tools/python
+python seed_more_products.py
+```
+
+Start Gatsby from the Gatsby project folder:
+
+```bash
+cd /c/path/to/your/gatsby-project
+ENABLE_GATSBY_REFRESH_ENDPOINT=true npm run develop
+```
+
+After changing the database, refresh Gatsby:
+
+```bash
+curl -X POST http://localhost:8000/__refresh
 ```
 
 
@@ -596,7 +643,9 @@ During development, Gatsby can expose a refresh endpoint so MongoDB data can be 
 
 ### Start Gatsby with the refresh endpoint enabled
 
-In PowerShell, run this from the Gatsby project folder:
+#### PowerShell
+
+Run this from the Gatsby project folder:
 
 ```powershell
 $env:ENABLE_GATSBY_REFRESH_ENDPOINT="true"
@@ -609,17 +658,36 @@ You can also run both commands on one line:
 $env:ENABLE_GATSBY_REFRESH_ENDPOINT="true"; npm run develop
 ```
 
+#### Git Bash
+
+Run this from the Gatsby project folder:
+
+```bash
+export ENABLE_GATSBY_REFRESH_ENDPOINT=true
+npm run develop
+```
+
+You can also run both commands on one line:
+
+```bash
+ENABLE_GATSBY_REFRESH_ENDPOINT=true npm run develop
+```
+
 Keep that terminal running.
 
 ### Refresh Gatsby after changing MongoDB data
 
-After running either Python database script, open a second PowerShell terminal and send a POST request to Gatsby:
+After running either Python database script, open a second terminal and send a POST request to Gatsby.
+
+#### PowerShell
+
+Use the actual Windows curl executable:
 
 ```powershell
 curl.exe -X POST http://localhost:8000/__refresh
 ```
 
-On some Windows systems, `curl` is an alias for `Invoke-WebRequest`. Using `curl.exe` ensures that the actual curl program is used.
+On some Windows systems, `curl` is a PowerShell alias for `Invoke-WebRequest`. Using `curl.exe` ensures that the actual curl program is used.
 
 PowerShell can also call the endpoint directly:
 
@@ -629,43 +697,92 @@ Invoke-WebRequest `
   -Uri http://localhost:8000/__refresh
 ```
 
+#### Git Bash
+
+```bash
+curl -X POST http://localhost:8000/__refresh
+```
+
 ### Example: reseed products without restarting Gatsby
 
-Start Gatsby once:
+Start Gatsby once.
+
+PowerShell:
 
 ```powershell
 cd C:\path\to\your\gatsby-project
 $env:ENABLE_GATSBY_REFRESH_ENDPOINT="true"; npm run develop
 ```
 
-In another PowerShell terminal, reseed MongoDB:
+Git Bash:
+
+```bash
+cd /c/path/to/your/gatsby-project
+ENABLE_GATSBY_REFRESH_ENDPOINT=true npm run develop
+```
+
+In another terminal, reseed MongoDB.
+
+PowerShell:
 
 ```powershell
 cd C:\tools\python
 python seed_more_products.py
 ```
 
-Refresh Gatsby's data layer:
+Git Bash:
+
+```bash
+cd /c/tools/python
+python seed_more_products.py
+```
+
+Refresh Gatsby's data layer.
+
+PowerShell:
 
 ```powershell
 curl.exe -X POST http://localhost:8000/__refresh
+```
+
+Git Bash:
+
+```bash
+curl -X POST http://localhost:8000/__refresh
 ```
 
 Reload the Products page in the browser.
 
 ### Example: test the empty database page
 
-Clear MongoDB:
+Clear MongoDB.
+
+PowerShell:
 
 ```powershell
 cd C:\tools\python
 python clear_db.py
 ```
 
-Refresh Gatsby:
+Git Bash:
+
+```bash
+cd /c/tools/python
+python clear_db.py
+```
+
+Refresh Gatsby.
+
+PowerShell:
 
 ```powershell
 curl.exe -X POST http://localhost:8000/__refresh
+```
+
+Git Bash:
+
+```bash
+curl -X POST http://localhost:8000/__refresh
 ```
 
 Reload the Products page. Gatsby should display the empty-database message without requiring the development server to be restarted.
