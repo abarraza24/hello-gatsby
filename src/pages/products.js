@@ -3,36 +3,108 @@ import { graphql } from "gatsby"
 import Layout from "../components/layout"
 import Seo from "../components/Seo"
 
+const formatPrice = (price) => {
+  const numericPrice = Number(price)
+
+  return Number.isFinite(numericPrice)
+    ? numericPrice.toFixed(2)
+    : "0.00"
+}
+
 const ProductsPage = ({ data }) => {
   const products = data?.allMongodbMyGatsbyDbProducts?.nodes ?? []
 
   const [currentIndex, setCurrentIndex] = React.useState(0)
+  const [isCarouselPaused, setIsCarouselPaused] = React.useState(false)
 
   const carouselProducts = products.slice(0, 5)
   const currentFeatured = carouselProducts[currentIndex]
-  const gridProducts = products.slice(5, 15)
+  const gridProducts = products
+
+  React.useEffect(() => {
+    if (carouselProducts.length <= 1 || isCarouselPaused) {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      setCurrentIndex(
+        (previousIndex) =>
+          (previousIndex + 1) % carouselProducts.length
+      )
+    }, 5000)
+
+    return () => window.clearInterval(intervalId)
+  }, [carouselProducts.length, isCarouselPaused])
+
+  React.useEffect(() => {
+    if (
+      carouselProducts.length > 0 &&
+      currentIndex >= carouselProducts.length
+    ) {
+      setCurrentIndex(0)
+    }
+  }, [carouselProducts.length, currentIndex])
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % carouselProducts.length)
+    if (carouselProducts.length === 0) return
+
+    setCurrentIndex(
+      (previousIndex) =>
+        (previousIndex + 1) % carouselProducts.length
+    )
   }
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + carouselProducts.length) % carouselProducts.length)
+    if (carouselProducts.length === 0) return
+
+    setCurrentIndex(
+      (previousIndex) =>
+        (previousIndex - 1 + carouselProducts.length) %
+        carouselProducts.length
+    )
   }
 
   if (products.length === 0) {
     return (
-      <Layout pageTitle="Local Vagrant Store 🌱">
+      <Layout>
+        <div className="mb-12 text-center">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Local Vagrant Store{" "}
+            <span role="img" aria-label="seedling">
+              {"\u{1F331}"}
+            </span>
+          </h1>
+
+          <p className="mt-3 text-lg text-base-content/65">
+            Sourced in real-time from your Vagrant MongoDB instance.
+          </p>
+        </div>
+
         <div className="flex items-center justify-center p-4 py-12">
-          <div className="card w-full max-w-md bg-base-100 shadow-xl border border-base-300">
-            <div className="card-body text-center items-center py-12">
-              <span className="text-6xl mb-4">🛒</span>
-              <h2 className="card-title text-2xl font-black text-base-content">Your shelves are empty!</h2>
-              <p className="text-base-content/70 mt-2 mb-6">
-                There are no products in the database. Run your python seed script to stock up.
+          <div className="card w-full max-w-md border border-base-300 bg-base-100 shadow-xl">
+            <div className="card-body items-center py-12 text-center">
+              <span
+                className="mb-4 text-6xl"
+                role="img"
+                aria-label="shopping cart"
+              >
+                {"\u{1F6D2}"}
+              </span>
+
+              <h2 className="card-title text-2xl font-black text-base-content">
+                Your shelves are empty!
+              </h2>
+
+              <p className="mb-6 mt-2 text-base-content/70">
+                There are no products in the database. Run your Python seed
+                script to stock up.
               </p>
+
               <div className="badge badge-accent animate-pulse px-4 py-3 font-semibold">
-                Awaiting seed_more_products.py... 🌱
+                Awaiting seed_more_products.py...{" "}
+                <span role="img" aria-label="seedling">
+                  {"\u{1F331}"}
+                </span>
               </div>
             </div>
           </div>
@@ -42,98 +114,135 @@ const ProductsPage = ({ data }) => {
   }
 
   return (
-    <Layout pageTitle="Local Vagrant Store 🌱">
-      
-      <p className="text-lg text-base-content/65 -mt-4 mb-12">
-        Sourced in real-time from your Vagrant MongoDB instance.
-      </p>
+    <Layout>
+      <div className="mb-12 text-center">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Local Vagrant Store{" "}
+          <span role="img" aria-label="seedling">
+            {"\u{1F331}"}
+          </span>
+        </h1>
 
-      
+        <p className="mt-3 text-lg text-base-content/65">
+          Sourced in real-time from your Vagrant MongoDB instance.
+        </p>
+      </div>
+
       {currentFeatured && (
-        <section className="relative w-full rounded-3xl overflow-hidden bg-gradient-to-r from-primary to-secondary text-primary-content shadow-2xl mb-16 min-h-[260px] flex flex-col justify-center p-8 sm:p-12">
-          
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full gap-8 px-6 sm:px-10 z-10">
+        <section
+          className="relative mb-16 flex min-h-[260px] w-full flex-col justify-center overflow-hidden rounded-3xl bg-gradient-to-r from-primary to-secondary p-8 text-primary-content shadow-2xl sm:p-12"
+          onMouseEnter={() => setIsCarouselPaused(true)}
+          onMouseLeave={() => setIsCarouselPaused(false)}
+          onFocus={() => setIsCarouselPaused(true)}
+          onBlur={() => setIsCarouselPaused(false)}
+        >
+          <div className="z-10 flex w-full flex-col items-start justify-between gap-8 px-6 sm:px-10 md:flex-row md:items-center">
             <div className="max-w-xl space-y-4">
-              <span className="badge badge-accent font-extrabold uppercase tracking-wider text-xs px-3 py-2">
-                Featured Deal {currentIndex + 1} of {carouselProducts.length}
+              <span className="badge badge-accent px-3 py-2 text-xs font-extrabold uppercase tracking-wider">
+                Featured Deal {currentIndex + 1} of{" "}
+                {carouselProducts.length}
               </span>
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight">
+
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
                 {currentFeatured.name}
               </h2>
-              <p className="text-primary-content/85 text-sm sm:text-base leading-relaxed line-clamp-2">
+
+              <p className="line-clamp-2 text-sm leading-relaxed text-primary-content/85 sm:text-base">
                 {currentFeatured.description}
               </p>
             </div>
-            
-            <div className="flex flex-col items-start md:items-end gap-3 min-w-[160px]">
+
+            <div className="flex min-w-[160px] flex-col items-start gap-3 md:items-end">
               <span className="text-4xl font-black tracking-tight">
-                ${currentFeatured.price?.toFixed(2) ?? "0.00"}
+                ${formatPrice(currentFeatured.price)}
               </span>
-              <button className="btn btn-neutral hover:scale-105 active:scale-95 transition-transform duration-150 font-bold px-8 shadow-md border-none">
+
+              <button
+                type="button"
+                className="btn btn-neutral border-none px-8 font-bold shadow-md transition-transform duration-150 hover:scale-105 active:scale-95"
+              >
                 Buy Now
               </button>
             </div>
           </div>
 
-          <button 
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 btn btn-circle btn-ghost text-white hover:bg-white/20 border-none" 
-            onClick={handlePrev}
-            aria-label="Previous slide"
-          >
-            ❮
-          </button>
-          <button 
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 btn btn-circle btn-ghost text-white hover:bg-white/20 border-none" 
-            onClick={handleNext}
-            aria-label="Next slide"
-          >
-            ❯
-          </button>
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
-            {carouselProducts.map((_, idx) => (
+          {carouselProducts.length > 1 && (
+            <>
               <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                  currentIndex === idx ? "bg-white scale-125 px-2" : "bg-white/50 hover:bg-white/85"
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
-          </div>
+                type="button"
+                className="btn btn-circle btn-ghost absolute left-4 top-1/2 z-20 -translate-y-1/2 border-none text-white hover:bg-white/20"
+                onClick={handlePrev}
+                aria-label="Previous slide"
+              >
+                ❮
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-circle btn-ghost absolute right-4 top-1/2 z-20 -translate-y-1/2 border-none text-white hover:bg-white/20"
+                onClick={handleNext}
+                aria-label="Next slide"
+              >
+                ❯
+              </button>
+
+              <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-center gap-2">
+                {carouselProducts.map((product, index) => (
+                  <button
+                    type="button"
+                    key={product.id}
+                    onClick={() => setCurrentIndex(index)}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      currentIndex === index
+                        ? "w-6 scale-125 bg-white"
+                        : "w-2.5 bg-white/50 hover:bg-white/85"
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </section>
       )}
 
-      <div className="flex items-center justify-between mb-8 border-b border-base-300 pb-4">
-        <h2 className="text-2xl font-bold text-base-content tracking-tight">
-          Trending Products
+      <div className="mb-8 flex items-center justify-between border-b border-base-300 pb-4">
+        <h2 className="text-2xl font-bold tracking-tight text-base-content">
+          All Products
         </h2>
-        <span className="badge badge-neutral font-semibold py-3 px-4">
-          {gridProducts.length} Items Available
+
+        <span className="badge badge-neutral px-4 py-3 font-semibold">
+          {gridProducts.length}{" "}
+          {gridProducts.length === 1 ? "Item" : "Items"} Available
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {gridProducts.map((product) => (
-          <div 
-            key={product.id} 
-            className="card bg-base-100 shadow-xl border border-base-300/40 hover:border-primary/20 hover:scale-[1.02] hover:shadow-2xl transition-all duration-300 ease-out"
+          <div
+            key={product.id}
+            className="card border border-base-300/40 bg-base-100 shadow-xl transition-all duration-300 ease-out hover:scale-[1.02] hover:border-primary/20 hover:shadow-2xl"
           >
-            <div className="card-body justify-between h-[240px] p-6">
+            <div className="card-body h-[240px] justify-between p-6">
               <div>
-                <h3 className="card-title text-lg font-bold text-base-content line-clamp-1">
+                <h3 className="card-title line-clamp-1 text-lg font-bold text-base-content">
                   {product.name}
                 </h3>
-                <p className="text-sm text-base-content/70 mt-2 line-clamp-3 leading-relaxed">
+
+                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-base-content/70">
                   {product.description}
                 </p>
               </div>
-              
-              <div className="card-actions justify-between items-center mt-4 border-t border-base-200 pt-4">
+
+              <div className="card-actions mt-4 items-center justify-between border-t border-base-200 pt-4">
                 <span className="text-xl font-extrabold text-primary">
-                  ${product.price?.toFixed(2) ?? "0.00"}
+                  ${formatPrice(product.price)}
                 </span>
-                <button className="btn btn-primary btn-sm rounded-lg hover:scale-105 active:scale-95 transition-transform duration-150 border-none">
+
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm rounded-lg border-none transition-transform duration-150 hover:scale-105 active:scale-95"
+                >
                   Details
                 </button>
               </div>
@@ -146,7 +255,7 @@ const ProductsPage = ({ data }) => {
 }
 
 export const query = graphql`
-  query {
+  query ProductsPageQuery {
     allMongodbMyGatsbyDbProducts {
       nodes {
         id

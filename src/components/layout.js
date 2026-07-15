@@ -1,9 +1,16 @@
-import * as React from 'react'
-import { Link, useStaticQuery, graphql } from 'gatsby'
+import * as React from "react"
+import { Link, useStaticQuery, graphql } from "gatsby"
 
-const Layout = ({ pageTitle, children }) => {
+const navigation = [
+  { label: "Home", to: "/" },
+  { label: "About", to: "/about" },
+  { label: "Blog", to: "/blog" },
+  { label: "Products 🛒", to: "/products" },
+]
+
+const Layout = ({ pageTitle, description, children }) => {
   const data = useStaticQuery(graphql`
-    query {
+    query LayoutQuery {
       site {
         siteMetadata {
           title
@@ -12,48 +19,62 @@ const Layout = ({ pageTitle, children }) => {
     }
   `)
 
+  const siteTitle = data.site.siteMetadata.title
+
   return (
-    <div data-theme="cupcake" className="min-h-screen bg-base-200 flex flex-col">
-      
-      <header className="navbar bg-base-100 shadow-sm px-4 sm:px-8">
-        <div className="flex-1">
-          <Link to="/" className="btn btn-ghost text-xl font-black tracking-tight normal-case">
-            {data.site.siteMetadata.title}
-          </Link>
-        </div>
-        <div className="flex-none">
-          <ul className="menu menu-horizontal px-1 gap-1 sm:gap-2 font-bold">
-            <li>
-              <Link to="/" activeClassName="bg-primary text-primary-content">Home</Link>
-            </li>
-            <li>
-              <Link to="/about" activeClassName="bg-primary text-primary-content">About</Link>
-            </li>
-            <li>
-              <Link to="/blog" activeClassName="bg-primary text-primary-content">Blog</Link>
-            </li>
-            <li>
-              <Link to="/products" activeClassName="bg-primary text-primary-content">Store 🛒</Link>
-            </li>
-          </ul>
+    <div className="min-h-screen bg-base-200">
+      <header className="border-b border-base-300 bg-base-100">
+        <div className="navbar mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="navbar-start">
+            <Link
+              to="/"
+              className="text-lg font-semibold tracking-tight text-base-content"
+            >
+              {siteTitle}
+            </Link>
+          </div>
+
+          <nav className="navbar-end">
+            <ul className="menu menu-horizontal gap-1 p-0">
+              {navigation.map(item => (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    activeClassName="bg-base-200 font-semibold"
+                    className="rounded-md text-sm"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </header>
 
-      <main className="flex-grow max-w-5xl w-full mx-auto p-6 sm:p-8">
+      <main className="mx-auto min-h-[calc(100vh-140px)] w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         {pageTitle && (
-          <h1 className="text-3xl sm:text-4xl font-black text-base-content mb-6 tracking-tight">
-            {pageTitle}
-          </h1>
+          <header className="mb-10 max-w-3xl">
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              {pageTitle}
+            </h1>
+
+            {description && (
+              <p className="mt-3 text-base leading-7 text-base-content/65">
+                {description}
+              </p>
+            )}
+          </header>
         )}
+
         {children}
       </main>
 
-      <footer className="footer footer-center p-4 bg-base-100 text-base-content/60 border-t border-base-200">
-        <aside>
-          <p>© {new Date().getFullYear()} {data.site.siteMetadata.title} • Sourced from Vagrant MongoDB</p>
-        </aside>
+      <footer className="border-t border-base-300 bg-base-100">
+        <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-base-content/60 sm:px-6">
+          © {new Date().getFullYear()} {siteTitle}
+        </div>
       </footer>
-
     </div>
   )
 }
