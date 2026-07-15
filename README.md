@@ -81,34 +81,143 @@ VBoxManage --version
 
 ## Vagrant MongoDB environment
 
-The project includes:
+The MongoDB virtual machine can be kept outside the Gatsby project. A recommended Windows folder layout is:
 
 ```text
-Vagrantfile
-provision-mongo.sh
+C:\tools\vagrant\redhat-mongo\
+├── Vagrantfile
+└── provision-mongo.sh
 ```
 
-The `Vagrantfile` creates an AlmaLinux 9 virtual machine and forwards MongoDB from the VM to the host computer.
+Keeping the virtual-machine files in a separate tools folder prevents Vagrant-specific files from becoming mixed into the Gatsby source code.
 
-```text
-Guest MongoDB port: 27017
-Host MongoDB port: 27017
-Host connection: mongodb://localhost:27017
+Create the folders from PowerShell:
+
+```powershell
+mkdir C:\tools\vagrant\redhat-mongo
+cd C:\tools\vagrant\redhat-mongo
 ```
 
-The provisioning script:
+Create a file named `Vagrantfile` in that folder and paste in:
 
-- Updates AlmaLinux packages
-- Installs useful command-line tools
-- Adds the MongoDB 8.0 repository
-- Installs MongoDB Community Edition
-- Configures MongoDB networking
-- Enables and starts the `mongod` service
-- Tests the MongoDB connection
+```ruby
+Vagrant.configure("2") do |config|
+  config.vm.box = "almalinux/9"
+  config.vm.hostname = "rhel-mongo"
 
-## Start the MongoDB virtual machine
+  # Forward MongoDB from the VM to this computer.
+  # Gatsby connects through mongodb://localhost:27017.
+  config.vm.network "forwarded_port",
+    guest: 27017,
+    host: 27017,
+    host_ip: "127.0.0.1",
+    auto_correct: false
 
-From the project directory containing the `Vagrantfile`, run:
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "rhel-mongo"
+    vb.memory = 2048
+    vb.cpus = 2
+  end
+
+  # SSH compatibility settings for the AlmaLinux Vagrant box.
+  config.ssh.extra_args = [
+    "-o",
+    "PubkeyAcceptedKeyTypes=+ssh-rsa",
+    "-o",
+    "HostKeyAlgorithms=+ssh-rsa"
+  ]
+
+  config.ssh.keys_only = false
+
+  # Install and configure MongoDB.
+  config.vm.provision "shell", path: "provision-mongo.sh"
+end
+```
+
+Create a second file named `provision-mongo.sh` in the same folder and paste in:
+
+```bash
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo "Updating system packages..."
+sudo dnf update -y
+
+echo "Installing useful tools..."
+sudo dnf install -y \
+  vim \
+  nano \
+  wget \
+  curl \
+  net-tools
+
+echo "Creating the MongoDB 8.0 repository file..."
+
+sudo tee /etc/yum.repos.d/mongodb-org-8.0.repo > /dev/null <<'EOF'
+[mongodb-org-8.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/9/mongodb-org/8.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://pgp.mongodb.com/server-8.0.asc
+EOF
+
+echo "Refreshing repository metadata..."
+sudo dnf clean all
+sudo dnf makecache
+
+echo "Installing MongoDB..."
+sudo dnf install -y mongodb-org
+
+echo "Configuring MongoDB to accept Vagrant forwarded connections..."
+
+sudo sed -i \
+  's/^[[:space:]]*bindIp:[[:space:]]*.*/  bindIp: 0.0.0.0/' \
+  /etc/mongod.conf
+
+echo "Allowing MongoDB through the VM firewall..."
+
+if sudo systemctl is-active --quiet firewalld; then
+  sudo firewall-cmd --permanent --add-port=27017/tcp
+  sudo firewall-cmd --reload
+else
+  echo "firewalld is not running. No firewall rule was required."
+fi
+
+echo "Enabling and starting MongoDB..."
+sudo systemctl enable --now mongod
+
+echo "Checking MongoDB status..."
+sudo systemctl status mongod --no-pager || true
+
+echo "MongoDB version:"
+mongod --version
+
+echo "Mongo shell version:"
+mongosh --version || true
+
+echo "Testing the MongoDB connection..."
+
+mongosh \
+  --host 127.0.0.1 \
+  --port 27017 \
+  --quiet \
+  --eval 'db.runCommand({ ping: 1 })'
+
+echo "MongoDB setup complete."
+echo "Gatsby connection string: mongodb://localhost:27017"
+```
+
+### Start the MongoDB virtual machine
+
+Open PowerShell or Git Bash and move into the Vagrant folder:
+
+```powershell
+cd C:\tools\vagrant\redhat-mongo
+```
+
+Start and provision the VM:
 
 ```shell
 vagrant up
@@ -140,7 +249,13 @@ Exit the VM:
 exit
 ```
 
-## Common Vagrant commands
+### Common Vagrant commands
+
+Run these commands from:
+
+```text
+C:\tools\vagrant\redhat-mongo
+```
 
 Start the VM:
 
@@ -247,7 +362,8 @@ npm install
 
 1. **Start the MongoDB Vagrant environment.**
 
-   ```shell
+   ```powershell
+   cd C:\tools\vagrant\redhat-mongo
    vagrant up
    ```
 
@@ -393,9 +509,7 @@ project-root/
 ├── gatsby-node.js
 ├── package.json
 ├── postcss.config.js
-├── provision-mongo.sh
-├── README.md
-└── Vagrantfile
+└── README.md
 ```
 
 ## Troubleshooting
@@ -419,9 +533,10 @@ npm run develop
 
 ### Gatsby cannot connect to MongoDB
 
-Confirm that the VM is running:
+From the Vagrant folder, confirm that the VM is running:
 
-```shell
+```powershell
+cd C:\tools\vagrant\redhat-mongo
 vagrant status
 ```
 
@@ -507,4 +622,4 @@ Deploy the original Gatsby starter with one click on Netlify:
 
 [<img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" />](https://app.netlify.com/start/deploy?repository=https://github.com/gatsbyjs/gatsby-starter-minimal)
 
-> The local Vagrant MongoDB environment is intended for development. A Netlify deployment cannot connect to MongoDB running on your local computer. A deployed version would require 
+> The local Vagrant MongoDB environment is intended for development. A Netlify deployment cannot connect to MongoDB running on your local computer. A deployed version would require a publicly reachable database service and a production environment variable.
