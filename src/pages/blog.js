@@ -4,6 +4,7 @@ import Layout from  '../components/layout'
 import Seo from '../components/Seo'
 
 const BlogPage = ( { data }) => {
+    console.log("Gatsby Data Id", data)
     return (
         <Layout pageTitle="My Blog Posts">
             {
