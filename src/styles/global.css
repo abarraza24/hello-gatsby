@@ -1,0 +1,23 @@
+/* src/styles/global.css */
+
+@import "tailwindcss";
+
+/* Load DaisyUI and configure themes */
+@plugin "daisyui" {
+  themes: cupcake, nord, dark; /* This loads the themes into your CSS */
+}
+
+@utility animate-fadeIn {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
